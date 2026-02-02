@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI提示词助手</title>
+  <style>
+    /* 主题字体 */
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&family=Playfair+Display:wght@400;700&display=swap');
+    
+    /* 主题变量定义 */
+    :root {
+      /* 未来机器人风格变量 */
+      --robot-bg-primary: #0a0a0f;
+      --robot-bg-secondary: #121225;
+      --robot-bg-tertiary: #1a1a30;
+      --robot-text-primary: #00ffff;
+      --robot-text-secondary: #00ff88;
+      --robot-text-tertiary: #ffffff;
+      --robot-border-primary: #00ffff;
+      --robot-border-secondary: #00ff88;
+      --robot-glow-primary: 0 0 10px #00ffff;
+      --robot-glow-secondary: 0 0 15px #00ff88;
+      --robot-font-title: 'Orbitron', monospace;
+      --robot-font-body: 'Roboto', sans-serif;
+      
+      /* 优雅少女风格变量 */
+      --girly-bg-primary: #fdf6f0;
+      --girly-bg-secondary: #fff8f0;
+      --girly-bg-tertiary: #ffffff;
+      --girly-text-primary: #d469a8;
+      --girly-text-secondary: #7b61ff;
+      --girly-text-tertiary: #333333;
+      --girly-border-primary: #ffb6c1;
+      --girly-border-secondary: #dda0dd;
+      --girly-glow-primary: 0 0 8px rgba(212, 105, 168, 0.3);
+      --girly-glow-secondary: 0 0 12px rgba(123, 97, 255, 0.3);
+      --girly-font-title: 'Dancing Script', cursive;
+      --girly-font-body: 'Playfair Display', serif;
+      
+      /* 默认使用机器人风格 */
+      --bg-primary: var(--robot-bg-primary);
+      --bg-secondary: var(--robot-bg-secondary);
+      --bg-tertiary: var(--robot-bg-tertiary);
+      --text-primary: var(--robot-text-primary);
+      --text-secondary: var(--robot-text-secondary);
+      --text-tertiary: var(--robot-text-tertiary);
+      --border-primary: var(--robot-border-primary);
+      --border-secondary: var(--robot-border-secondary);
+      --glow-primary: var(--robot-glow-primary);
+      --glow-secondary: var(--robot-glow-secondary);
+      --font-title: var(--robot-font-title);
+      --font-body: var(--robot-font-body);
+    }
+    
+    /* 优雅少女风格主题类 */
+    body.girly-theme {
+      --bg-primary: var(--girly-bg-primary);
+      --bg-secondary: var(--girly-bg-secondary);
+      --bg-tertiary: var(--girly-bg-tertiary);
+      --text-primary: var(--girly-text-primary);
+      --text-secondary: var(--girly-text-secondary);
+      --text-tertiary: var(--girly-text-tertiary);
+      --border-primary: var(--girly-border-primary);
+      --border-secondary: var(--girly-border-secondary);
+      --glow-primary: var(--girly-glow-primary);
+      --glow-secondary: var(--girly-glow-secondary);
+      --font-title: var(--girly-font-title);
+      --font-body: var(--girly-font-body);
+    }
+    
+    /* 优雅少女风格的特殊样式调整 */
+    body.girly-theme h1 {
+      font-size: 22px;
+      letter-spacing: 0;
+    }
+    
+    body.girly-theme .prompt-item {
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(212, 105, 168, 0.08);
+    }
+    
+    body.girly-theme button {
+      border-radius: 20px;
+      font-weight: normal;
+      letter-spacing: 0;
+      text-transform: none;
+    }
+    
+    body.girly-theme .no-config button {
+      background: var(--girly-bg-tertiary);
+      color: var(--girly-text-primary);
+      border: 1px solid var(--girly-border-primary);
+    }
+    
+    body.girly-theme .no-config button:hover {
+      background: var(--girly-text-primary);
+      color: white;
+    }
+    
+    body.girly-theme textarea {
+      border-radius: 10px;
+      box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.05);
+    }
+    
+    body.girly-theme body::before {
+      background-image: 
+        linear-gradient(rgba(212, 105, 168, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(212, 105, 168, 0.05) 1px, transparent 1px);
+    }
+    
+    body {
+      font-family: var(--font-body);
+      padding: 15px;
+      width: 420px;
+      min-height: 450px;
+      background-color: var(--bg-primary);
+      color: var(--text-tertiary);
+      border: 1px solid var(--border-primary);
+      box-shadow: var(--glow-primary);
+      border-radius: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    /* 添加背景网格效果 */
+    body::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        linear-gradient(rgba(0, 255, 255, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 255, 255, 0.1) 1px, transparent 1px);
+      background-size: 20px 20px;
+      z-index: -1;
+    }
+    
+    h1 {
+      font-family: var(--font-title);
+      font-size: 18px;
+      margin-top: 0;
+      color: var(--text-primary);
+      text-align: center;
+      text-shadow: var(--glow-primary);
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-primary);
+    }
+    
+    .no-config {
+      text-align: center;
+      padding: 30px 0;
+    }
+    
+    .no-config p {
+      color: var(--text-secondary);
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+    
+    .no-config button {
+      padding: 10px 20px;
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-primary);
+      border-radius: 5px;
+      cursor: pointer;
+      font-family: var(--font-title);
+      font-weight: bold;
+      box-shadow: var(--glow-primary);
+      transition: all 0.3s ease;
+    }
+    
+    .no-config button:hover {
+      background: var(--text-primary);
+      color: var(--bg-primary);
+      box-shadow: 0 0 20px var(--text-primary);
+    }
+    
+    #prompts-list {
+      margin-top: 15px;
+    }
+    
+    .prompt-item {
+      padding: 12px;
+      margin-bottom: 10px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-primary);
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-family: 'Roboto', sans-serif;
+      color: var(--text-secondary);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .prompt-item:hover {
+      background: var(--bg-secondary);
+      box-shadow: var(--glow-primary);
+      transform: translateY(-2px);
+    }
+    
+    .prompt-item::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.2), transparent);
+      transition: left 0.5s;
+    }
+    
+    .prompt-item:hover::after {
+      left: 100%;
+    }
+    
+    #config-link {
+      margin-top: 15px;
+      text-align: center;
+      font-size: 12px;
+    }
+    
+    #config-link a {
+      color: var(--text-primary);
+      text-decoration: none;
+      font-family: var(--font-title);
+      transition: all 0.3s ease;
+      padding: 5px 10px;
+      border-radius: 3px;
+    }
+    
+    #config-link a:hover {
+      background: rgba(0, 255, 255, 0.1);
+      box-shadow: var(--glow-primary);
+    }
+    
+    #input-container {
+      margin-top: 15px;
+      display: none;
+    }
+    
+    #input-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-primary);
+    }
+    
+    #current-prompt-title {
+      font-weight: bold;
+      color: var(--text-primary);
+      font-family: 'Orbitron', monospace;
+      text-shadow: var(--glow-primary);
+    }
+    
+    #back-btn {
+      padding: 6px 12px;
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-secondary);
+      border-radius: 5px;
+      cursor: pointer;
+      font-family: var(--font-title);
+      transition: all 0.3s ease;
+    }
+    
+    #back-btn:hover {
+      background: var(--text-secondary);
+      color: var(--bg-primary);
+      box-shadow: var(--glow-secondary);
+    }
+    
+    .input-group {
+      margin-bottom: 18px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+      color: var(--text-secondary);
+      font-family: 'Orbitron', monospace;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    textarea {
+      width: 100%;
+      padding: 12px;
+      box-sizing: border-box;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-primary);
+      border-radius: 5px;
+      resize: vertical;
+      min-height: 120px;
+      color: var(--text-tertiary);
+      font-family: 'Roboto', sans-serif;
+      outline: none;
+      transition: all 0.3s ease;
+    }
+    
+    textarea:focus {
+      border-color: var(--text-primary);
+      box-shadow: var(--glow-primary);
+    }
+    
+    #button-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    
+    #ai-button {
+      padding: 10px 20px;
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-primary);
+      border-radius: 5px;
+      cursor: pointer;
+      font-family: var(--font-title);
+      font-weight: bold;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    #ai-button:hover {
+      background: var(--text-primary);
+      color: var(--bg-primary);
+      box-shadow: 0 0 20px var(--text-primary);
+    }
+    
+    #ai-button::before {
+      content: 'AI';
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-secondary);
+      font-weight: bold;
+    }
+    
+    #ai-button:hover::before {
+      color: var(--bg-primary);
+    }
+    
+    #copy-btn {
+      padding: 10px 20px;
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-secondary);
+      border-radius: 5px;
+      cursor: pointer;
+      font-family: var(--font-title);
+      font-weight: bold;
+      transition: all 0.3s ease;
+    }
+    
+    #copy-btn:hover {
+      background: var(--text-secondary);
+      color: var(--bg-primary);
+      box-shadow: var(--glow-secondary);
+    }
+    
+    #loading {
+      display: none;
+      font-size: 12px;
+      color: var(--text-primary);
+      font-family: 'Orbitron', monospace;
+      animation: pulse 1.5s infinite;
+    }
+    
+    /* 脉冲动画 */
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+    
+    /* 响应式调整 */
+    @media (max-width: 450px) {
+      body {
+        width: 380px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>AI提示词助手</h1>
+  
+  <div id="no-config" class="no-config" style="display: none;">
+    <p>尚未配置提示词</p>
+    <button id="go-config-btn">去配置</button>
+  </div>
+  
+  <div id="prompts-list" style="display: none;">
+    <!-- 提示词列表将在这里动态生成 -->
+  </div>
+  
+  <div id="input-container" style="display: none;">
+    <div id="input-header">
+      <div id="current-prompt-title"></div>
+      <button id="back-btn">返回</button>
+    </div>
+    
+    <div class="input-group">
+      <label for="user-input">输入内容</label>
+      <textarea id="user-input" placeholder="请输入您需要处理的内容"></textarea>
+    </div>
+    
+    <div id="button-container">
+      <button id="ai-button">AI解析</button>
+      <span id="loading">正在请求AI...</span>
+    </div>
+    
+    <div class="input-group">
+      <label>解析结果</label>
+      <textarea id="result" placeholder="AI解析结果将显示在这里" readonly></textarea>
+    </div>
+    
+    <div style="text-align: right;">
+      <button id="copy-btn">复制结果</button>
+    </div>
+  </div>
+  
+  <div id="config-link">
+    <a href="#" id="config-link-btn">配置提示词</a>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

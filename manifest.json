@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "AI提示词助手",
+  "version": "1.0",
+  "description": "可配置多个提示词对接多个AI工具的浏览器插件",
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "options_page": "options.html",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://api.siliconflow.cn/*"
+  ]
+}
