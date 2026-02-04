@@ -1,30 +1,53 @@
 // 加载配置
 function loadConfig() {
-  chrome.storage.sync.get(['model', 'api_key', 'prompts', 'theme'], function(result) {
-    if (result.model) {
-      document.getElementById('model').value = result.model;
-    }
-    if (result.api_key) {
-      document.getElementById('api_key').value = result.api_key;
-    }
-    if (result.prompts && result.prompts.length > 0) {
-      renderPrompts(result.prompts);
+  // 优先从local存储加载，确保获取最新保存的完整配置
+  chrome.storage.local.get(['model', 'api_key', 'prompts', 'theme'], function(localResult) {
+    if (chrome.runtime.lastError) {
+      console.error('Local存储加载失败:', chrome.runtime.lastError);
+      
+      // 如果local存储失败，尝试从sync存储加载
+      chrome.storage.sync.get(['model', 'api_key', 'prompts', 'theme'], function(syncResult) {
+        if (chrome.runtime.lastError) {
+          console.error('Sync存储加载也失败:', chrome.runtime.lastError);
+          // 显示一个空的配置
+          renderPrompts([{ title: '', content: '' }]);
+          return;
+        }
+        
+        processConfigData(syncResult);
+      });
     } else {
-      // 默认显示一个空的提示词配置
-      renderPrompts([{ title: '', content: '' }]);
+      // Local存储加载成功，处理数据
+      processConfigData(localResult);
     }
-    
-    // 加载主题设置
-    if (result.theme) {
-      document.getElementById(`theme-${result.theme}`).checked = true;
-    } else {
-      // 默认使用机器人主题
-      document.getElementById('theme-robot').checked = true;
-    }
-    
-    // 应用主题
-    applyTheme(result.theme || 'robot');
   });
+}
+
+// 处理配置数据
+function processConfigData(result) {
+  if (result.model) {
+    document.getElementById('model').value = result.model;
+  }
+  if (result.api_key) {
+    document.getElementById('api_key').value = result.api_key;
+  }
+  if (result.prompts && result.prompts.length > 0) {
+    renderPrompts(result.prompts);
+  } else {
+    // 默认显示一个空的提示词配置
+    renderPrompts([{ title: '', content: '' }]);
+  }
+  
+  // 加载主题设置
+  if (result.theme) {
+    document.getElementById(`theme-${result.theme}`).checked = true;
+  } else {
+    // 默认使用机器人主题
+    document.getElementById('theme-robot').checked = true;
+  }
+  
+  // 应用主题
+  applyTheme(result.theme || 'robot');
 }
 
 // 应用主题
@@ -146,21 +169,53 @@ function saveConfig() {
     return;
   }
   
-  chrome.storage.sync.set({
+  // 准备要保存的数据
+  const configData = {
     model: model,
     api_key: api_key,
     prompts: prompts,
     theme: theme
-  }, function() {
+  };
+  
+  // 检查数据大小
+  const dataSize = new Blob([JSON.stringify(configData)]).size;
+  console.log('配置数据大小:', Math.round(dataSize / 1024), 'KB');
+  
+  // 保存到local存储（始终保存，确保数据一致性）
+  chrome.storage.local.set(configData, function() {
     const status = document.getElementById('status');
-    status.textContent = '配置已保存！';
-    status.classList.add('show');
-    setTimeout(() => {
-      status.classList.remove('show');
+    
+    if (chrome.runtime.lastError) {
+      console.error('Local存储失败:', chrome.runtime.lastError);
+      status.textContent = '保存失败：' + chrome.runtime.lastError.message;
+      status.classList.add('show');
+      status.style.color = '#ff4444';
       setTimeout(() => {
-        status.textContent = '';
-      }, 500);
-    }, 2000);
+        status.classList.remove('show');
+        setTimeout(() => {
+          status.textContent = '';
+          status.style.color = '';
+        }, 500);
+      }, 3000);
+      return;
+    }
+    
+    // local存储成功后，再尝试sync存储
+    chrome.storage.sync.set(configData, function() {
+      if (chrome.runtime.lastError) {
+        console.error('Sync存储失败:', chrome.runtime.lastError);
+        // sync存储失败不影响local存储的成功提示
+      }
+      
+      status.textContent = '配置已保存！';
+      status.classList.add('show');
+      setTimeout(() => {
+        status.classList.remove('show');
+        setTimeout(() => {
+          status.textContent = '';
+        }, 500);
+      }, 2000);
+    });
   });
 }
 
